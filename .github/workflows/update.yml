@@ -1,0 +1,40 @@
+name: Atualizar base
+
+# Roda todo dia as 12:00 UTC (9h em Brasilia), depois que os jogos da
+# noite anterior ja terminaram. Tambem da para rodar na mao pela aba
+# Actions do repositorio, no botao "Run workflow".
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+      - name: Montar games.json
+        run: python build_data.py
+
+      - name: Comitar se mudou
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add games.json
+          if git diff --staged --quiet; then
+            echo "Nada mudou."
+          else
+            git commit -m "base: $(date -u +%Y-%m-%d)"
+            git push
+          fi
