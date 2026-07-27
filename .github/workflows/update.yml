@@ -1,11 +1,11 @@
 name: Atualizar base
 
-# Roda todo dia as 12:00 UTC (9h em Brasilia), depois que os jogos da
-# noite anterior ja terminaram. Tambem da para rodar na mao pela aba
+# Roda todo dia as 15:00 UTC (12h em Brasilia), uma hora depois do dataset
+# de origem se atualizar (14h UTC). Tambem da para rodar na mao pela aba
 # Actions do repositorio, no botao "Run workflow".
 on:
   schedule:
-    - cron: "0 12 * * *"
+    - cron: "0 15 * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,9 +15,9 @@ jobs:
   atualizar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
