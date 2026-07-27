@@ -1,11 +1,16 @@
 name: Atualizar base
 
-# Roda todo dia as 15:00 UTC (12h em Brasilia), uma hora depois do dataset
-# de origem se atualizar (14h UTC). Tambem da para rodar na mao pela aba
-# Actions do repositorio, no botao "Run workflow".
+# Roda todo dia as 15:17 UTC (12h17 em Brasilia), pouco depois do dataset de
+# origem se atualizar (14h UTC). O minuto 17 e proposital: no minuto 0 a fila
+# do GitHub fica congestionada e o atraso e maior.
+#
+# O GitHub desativa workflows agendados depois de 60 dias sem commit no
+# repositorio. Como na offseason da NBA nao ha jogo novo por uns 5 meses, o
+# passo "Marcar atividade" grava um arquivinho que muda uma vez por semana -
+# garante commit regular e mantem o agendamento vivo.
 on:
   schedule:
-    - cron: "0 15 * * *"
+    - cron: "17 15 * * *"
   workflow_dispatch:
 
 permissions:
@@ -27,11 +32,16 @@ jobs:
       - name: Montar games.json
         run: python build_data.py
 
+      - name: Marcar atividade
+        # Muda so uma vez por semana (ano + numero da semana ISO), entao nao
+        # polui o historico, mas impede os 60 dias de inatividade.
+        run: date -u +%G-W%V > .heartbeat
+
       - name: Comitar se mudou
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add games.json
+          git add games.json .heartbeat
           if git diff --staged --quiet; then
             echo "Nada mudou."
           else
