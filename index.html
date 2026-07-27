@@ -1583,7 +1583,15 @@ async function atualizar(){
       upmsg(`Base publicada carregada | jogos ate ${pub.meta.ate}`, "ok");
       return;
     }
-    upmsg("Nada novo publicado. Refazendo do arquivo publico...");
+    // Ha arquivo publicado, mas nao e mais novo: nao ha o que fazer.
+    // Refazer aqui custaria 40 MB de download sem ganho nenhum.
+    if(pub){
+      const q = (pub.meta && pub.meta.ate) || "";
+      upmsg(`Ja esta em dia${q ? ` | jogos ate ${q}` : ""}.`, "ok");
+      return;
+    }
+    // Sem arquivo publicado: ai sim vale remontar do CSV publico.
+    upmsg("Nenhuma base publicada encontrada. Montando do arquivo publico...");
     $("#profund").value = String((S.data.meta && S.data.meta.jogos_por_jogador) || JANELA_PADRAO);
     await construirBase();
   }catch(e){
