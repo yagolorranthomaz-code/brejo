@@ -408,6 +408,22 @@ td.best .sub{color:var(--bog);opacity:.7}
   </section>
 </main>
 
+<!-- MODAL: refazer base -->
+<div class="modal" id="wipeModal" role="dialog" aria-modal="true" aria-labelledby="wipeTitle">
+  <h3 id="wipeTitle">Refazer a base</h3>
+  <p class="lead">Isso apaga a base guardada neste navegador e volta para a tela
+  de construcao. Quem estiver usando vai precisar montar tudo de novo.</p>
+  <div class="lockrow">
+    <div class="field"><label for="wipePwd">Senha</label>
+      <input type="password" id="wipePwd" autocomplete="off" inputmode="numeric"></div>
+  </div>
+  <div class="msg" id="wipeMsg"></div>
+  <div class="modalfoot">
+    <button class="btn ghost" id="wipeClose">Cancelar</button>
+    <button class="btn" id="wipeGo">Apagar e refazer</button>
+  </div>
+</div>
+
 <!-- MODAL SCORING -->
 <div class="scrim" id="scrim"></div>
 <div class="modal" id="scoringModal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
@@ -749,7 +765,6 @@ const H2H_ROWS = [
   {k:"team",l:"Time",txt:true},{k:"pos",l:"Posição",txt:true},
   {k:"age",l:"Idade",d:1},{b:"exp",l:"Temporadas",d:0},
   {b:"height",l:"Altura"},{b:"weight",l:"Peso (lb)"},{b:"born",l:"Nascimento"},
-  {b:"college",l:"Faculdade"},{b:"draft",l:"Draft"},{b:"country",l:"País"},
   {c:"salary",l:"Salário"},{c:"years",l:"Anos de contrato"},
   {s:"Volume na janela de jogos"},
   {k:"n",l:"Jogos",d:0},{k:"mpg",l:"Minutos/jogo",d:1},{k:"pts_pg",l:"Pontos",d:1},
@@ -1481,12 +1496,35 @@ $("#buildBtn").onclick = construirBase;
    Boot
    ============================================================ */
 
-$("#reloadBtn").onclick = async () => {
+function abrirWipe(){
+  $("#wipePwd").value = "";
+  $("#wipeMsg").textContent = "";
+  $("#wipeMsg").className = "msg";
+  $("#wipeModal").classList.add("on");
+  $("#scrim").classList.add("on");
+  setTimeout(() => $("#wipePwd").focus(), 40);
+}
+function fecharWipe(){
+  $("#wipeModal").classList.remove("on");
+  $("#scrim").classList.remove("on");
+}
+$("#reloadBtn").onclick = abrirWipe;
+$("#wipeClose").onclick = fecharWipe;
+$("#wipePwd").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); $("#wipeGo").click(); }
+});
+$("#wipeGo").onclick = async () => {
+  if($("#wipePwd").value.trim() !== PASSWORD){
+    $("#wipeMsg").textContent = "Senha incorreta.";
+    $("#wipeMsg").className = "msg bad";
+    return;
+  }
+  fecharWipe();
   await apagarBase();
   $("#setup").hidden = false; $("#tabs").hidden = true;
   $("#prog").hidden = true; $("#err").textContent = "";
   $$(".view").forEach(v => v.classList.remove("on"));
-  ["#ctlWindow","#ctlDnp","#ctlScoring","#ctlUpdate","#reloadBtn"].forEach(s => $(s).hidden = true);
+  ["#ctlWindow","#ctlDnp","#ctlScoring","#ctlUpdate","#reloadBtn"].forEach(x => $(x).hidden = true);
   $("#upbar").hidden = true;
 };
 
