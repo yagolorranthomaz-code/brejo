@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brejo — NBA Fantasy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* pântano à noite */
+  --bog:#0A1310;        /* água escura — fundo */
+  --silt:#0F1B16;       /* painel */
+  --silt2:#152420;      /* painel elevado */
+  --reed:#24382E;       /* linha */
+  --reed2:#1A2A23;      /* linha suave */
+  --moss:#7E9689;       /* texto secundário */
+  --bone:#E6EFE8;       /* texto */
+  --gator:#2FD46B;      /* verde do jacaré — ação */
+  --eye:#F2B233;        /* olho do jacaré — destaque */
+  --mud:#E0813F;        /* lado que envia */
+  --water:#2FB6A8;      /* lado que recebe */
+  --blood:#D9503F;      /* negativo */
+
+  --disp:"Big Shoulders Display",Impact,sans-serif;
+  --body:"Archivo",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bog);color:var(--bone);font-family:var(--body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gator);outline-offset:2px}
+::selection{background:var(--gator);color:var(--bog)}
+
+/* escamas — textura da faixa superior */
+.scales{
+  height:5px;
+  background:
+    repeating-linear-gradient(135deg, var(--reed) 0 6px, transparent 6px 12px),
+    linear-gradient(90deg, var(--gator), var(--water) 40%, var(--reed) 100%);
+  opacity:.65;
+}
+
+/* ---------- topbar ---------- */
+.topbar{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;padding:13px 22px 11px;background:var(--silt);border-bottom:1px solid var(--reed);position:sticky;top:0;z-index:40}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{font-family:var(--disp);font-weight:800;font-size:40px;line-height:.8;letter-spacing:.03em;text-transform:uppercase;margin:0;color:var(--bone)}
+.brand h1 b{color:var(--gator);font-weight:800}
+.brand .sub{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--moss)}
+.topbar .spacer{flex:1}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl>span{font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--moss)}
+.switch{display:flex;border:1px solid var(--reed);background:var(--bog)}
+.switch button{background:transparent;border:0;padding:5px 12px;font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--moss)}
+.switch button[aria-pressed="true"]{background:var(--gator);color:var(--bog)}
+.btn{border:1px solid var(--gator);background:var(--gator);color:var(--bog);padding:6px 14px;font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase}
+.btn.ghost{background:transparent;color:var(--bone);border-color:var(--reed)}
+.btn.ghost:hover{border-color:var(--gator);color:var(--gator)}
+.btn.sm{padding:3px 9px;font-size:14px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+#scoringBtn{font-family:var(--mono);font-size:10px;letter-spacing:0;text-transform:none;padding:6px 10px;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+
+.tabs{display:flex;padding:0 22px;background:var(--silt);border-bottom:1px solid var(--reed);position:sticky;top:66px;z-index:39}
+
+/* barra de status da atualizacao */
+.upbar{padding:7px 22px;background:var(--silt2);border-bottom:1px solid var(--reed);font-family:var(--mono);font-size:11.5px;color:var(--moss)}
+.upbar.ok{color:var(--gator)}
+.upbar.bad{color:var(--blood)}
+#lastGame{white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:9px 20px 7px;margin-bottom:-1px;font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.06em;text-transform:uppercase;color:var(--moss)}
+.tabs button[aria-selected="true"]{color:var(--bone);border-bottom-color:var(--gator)}
+.tabs .count{font-family:var(--mono);font-size:10px;vertical-align:super;margin-left:3px;color:var(--gator)}
+
+main{padding:18px 22px 80px;max-width:1780px}
+.view{display:none}
+.view.on{display:block}
+.note{font-family:var(--mono);font-size:10.5px;color:var(--moss)}
+
+/* ---------- setup ---------- */
+.setup{max-width:660px;margin:48px auto;border:1px solid var(--reed);background:var(--silt);padding:30px 32px}
+.setup h2{font-family:var(--disp);font-weight:800;font-size:38px;letter-spacing:.03em;text-transform:uppercase;margin:0 0 4px}
+.setup p{color:var(--moss);margin:0 0 18px}
+.dropzone{border:2px dashed var(--reed);padding:40px 20px;text-align:center;background:var(--bog)}
+.dropzone.hot{border-color:var(--gator);background:var(--silt2)}
+.setup code{font-family:var(--mono);font-size:12px;background:var(--bog);border:1px solid var(--reed);padding:1px 5px;color:var(--gator)}
+.setrow{display:grid;grid-template-columns:1fr auto;gap:12px;margin-bottom:16px}
+.prog{margin:14px 0}
+.progbar{height:8px;background:var(--bog);border:1px solid var(--reed);overflow:hidden}
+.progbar i{display:block;height:100%;width:0;background:var(--gator);transition:width .2s}
+.progtxt{font-family:var(--mono);font-size:11px;color:var(--moss);margin-top:6px}
+details.alt{margin-top:16px;border-top:1px solid var(--reed);padding-top:12px}
+details.alt summary{font-family:var(--mono);font-size:11px;color:var(--moss);cursor:pointer}
+.setup .err{color:var(--blood);font-family:var(--mono);font-size:12px;margin-top:12px;min-height:16px}
+.steps{font-family:var(--mono);font-size:11.5px;color:var(--moss);margin-top:18px;border-top:1px solid var(--reed);padding-top:14px;line-height:1.9}
+.steps b{color:var(--gator)}
+
+/* ---------- rail + tabela ---------- */
+.split{display:grid;grid-template-columns:224px 1fr;gap:20px;align-items:start}
+.rail{border:1px solid var(--reed);background:var(--silt);padding:13px;position:sticky;top:116px}
+.rail h3{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.13em;text-transform:uppercase;color:var(--gator);margin:0 0 9px;padding-bottom:5px;border-bottom:1px solid var(--reed)}
+.field{margin-bottom:11px}
+.field label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--moss);margin-bottom:3px}
+.field input,.field select{width:100%;padding:6px 8px;border:1px solid var(--reed);background:var(--bog);color:var(--bone);border-radius:0}
+.field input::placeholder{color:#4C5F55}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chips button{border:1px solid var(--reed);background:var(--bog);color:var(--moss);padding:3px 8px;font-family:var(--mono);font-size:10.5px}
+.chips button[aria-pressed="true"]{background:var(--gator);color:var(--bog);border-color:var(--gator)}
+
+.tablewrap{border:1px solid var(--reed);background:var(--silt);overflow:auto;max-height:72vh}
+table{border-collapse:collapse;width:100%}
+thead th{position:sticky;top:0;background:var(--silt2);color:var(--bone);z-index:2;font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.07em;text-transform:uppercase;padding:7px 8px;text-align:right;white-space:nowrap;cursor:pointer;border-bottom:2px solid var(--gator)}
+thead th.txt{text-align:left}
+thead th .ar{opacity:.35;font-size:9px;margin-left:3px}
+thead th[aria-sort]{color:var(--gator)}
+thead th[aria-sort] .ar{opacity:1}
+tbody td{padding:4px 8px;border-bottom:1px solid var(--reed2);text-align:right;font-family:var(--mono);font-size:12px;white-space:nowrap}
+tbody td.txt{text-align:left;font-family:var(--body);font-size:13px}
+tbody tr:hover{background:var(--silt2)}
+tbody tr.fora td{opacity:.32}
+.pname{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--bone);border-bottom:1px solid var(--reed)}
+.pname:hover{color:var(--gator);border-color:var(--gator)}
+.fptcell{font-weight:700;color:var(--gator)}
+.pill{display:inline-block;padding:1px 6px;border:1px solid var(--reed);font-family:var(--mono);font-size:10px;color:var(--moss)}
+.tfoot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:7px 2px;font-family:var(--mono);font-size:11px;color:var(--moss)}
+.act{border:1px solid var(--reed);background:var(--bog);color:var(--moss);padding:1px 7px;font-family:var(--mono);font-size:11px;margin-left:3px}
+.act:hover{color:var(--bone)}
+.act.a:hover{border-color:var(--mud);color:var(--mud)}
+.act.b:hover{border-color:var(--water);color:var(--water)}
+
+/* célula destacada — olho do jacaré */
+td.best{background:var(--eye);color:var(--bog);font-weight:700}
+td.best .sub{color:var(--bog);opacity:.7}
+
+/* ---------- assinatura: linha d'água ---------- */
+.waterline{border:1px solid var(--reed);background:var(--silt);padding:11px 13px;margin-bottom:16px}
+.waterline h4{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone);margin:0;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.waterline h4 em{font-style:normal;font-family:var(--mono);font-size:10px;letter-spacing:.02em;text-transform:none;color:var(--moss)}
+.bars{display:flex;align-items:flex-end;gap:1px;height:58px;margin-top:9px}
+.bars i{flex:1;min-width:2px;display:block;background:var(--reed)}
+.bars i.on{background:var(--gator)}
+.bars i.off{background:var(--reed);opacity:.55}
+.bars i.dnp{background:repeating-linear-gradient(45deg,var(--reed2) 0 2px,transparent 2px 4px);min-height:4px;border-bottom:1px solid var(--blood)}
+.surface{height:2px;background:linear-gradient(90deg,var(--water),transparent);margin-top:2px;opacity:.5}
+.striplegend{font-family:var(--mono);font-size:9.5px;color:var(--moss);letter-spacing:.03em;margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.striplegend b{display:inline-block;width:9px;height:9px;margin-right:4px;vertical-align:-1px}
+.sw-on{background:var(--gator)}
+.sw-off{background:var(--reed)}
+.sw-dnp{background:repeating-linear-gradient(45deg,var(--reed2) 0 2px,var(--silt) 2px 4px);border-bottom:1px solid var(--blood)}
+
+/* ---------- H2H ---------- */
+.h2hpick{display:grid;grid-template-columns:1fr 64px 1fr;gap:14px;align-items:end;margin-bottom:18px}
+.h2hpick .vs{text-align:center;font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:.06em;color:var(--gator);padding-bottom:2px}
+.h2htbl{border:1px solid var(--reed);background:var(--silt)}
+.h2htbl th{background:var(--silt2);color:var(--bone);border-bottom:2px solid var(--gator);cursor:default;font-size:17px}
+.h2htbl td{font-family:var(--mono);font-size:12.5px;padding:5px 10px}
+.h2htbl td.mid{text-align:center;font-family:var(--body);font-size:11.5px;letter-spacing:.04em;color:var(--moss);background:var(--bog);width:190px;border-left:1px solid var(--reed2);border-right:1px solid var(--reed2)}
+.h2htbl td.l{text-align:left}
+.h2htbl td.r{text-align:right}
+.h2htbl tr.sect td{background:var(--reed);color:var(--gator);font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;text-align:center;padding:4px}
+.h2hstrips{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+
+/* ---------- TRADE ---------- */
+.tradegrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;margin-bottom:20px}
+.side{border:1px solid var(--reed);background:var(--silt)}
+.side.A{border-top:3px solid var(--mud)}
+.side.B{border-top:3px solid var(--water)}
+.side>header{padding:8px 13px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--reed)}
+.side.A>header h3{color:var(--mud)}
+.side.B>header h3{color:var(--water)}
+.side>header h3{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.1em;text-transform:uppercase;margin:0}
+.side>header .cnt{font-family:var(--mono);font-size:10.5px;color:var(--moss)}
+.picker{padding:10px 13px;border-bottom:1px solid var(--reed2);position:relative}
+.picker input[type=text]{width:100%;padding:7px 9px;border:1px solid var(--reed);background:var(--bog);color:var(--bone)}
+.sugg{position:absolute;left:13px;right:13px;top:calc(100% - 4px);z-index:20;background:var(--silt2);border:1px solid var(--gator);max-height:250px;overflow:auto;display:none}
+.sugg.on{display:block}
+.sugg button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;border-bottom:1px solid var(--reed2);background:transparent;color:var(--bone);padding:6px 10px;text-align:left}
+.sugg button:hover,.sugg button.cur{background:var(--reed)}
+.sugg .s2{font-family:var(--mono);font-size:10.5px;color:var(--moss)}
+.addrow{display:flex;gap:6px;padding:8px 13px;border-bottom:1px solid var(--reed2);flex-wrap:wrap;align-items:center}
+.addrow select,.addrow input{padding:4px 6px;border:1px solid var(--reed);background:var(--bog);color:var(--bone);font-family:var(--mono);font-size:11.5px}
+.addrow input[type=number]{width:80px}
+.assets{list-style:none;margin:0;padding:0;min-height:56px}
+.assets li{display:flex;align-items:center;gap:9px;padding:7px 13px;border-bottom:1px solid var(--reed2)}
+.assets .nm{flex:1;font-weight:500}
+.assets .nm small{display:block;font-family:var(--mono);font-size:10px;color:var(--moss);font-weight:400}
+.assets .val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--gator)}
+.assets li.extra .nm{font-family:var(--mono);font-size:12.5px;color:var(--eye)}
+.empty{padding:20px 13px;color:var(--moss);font-size:12.5px;text-align:center}
+.sidetot{padding:8px 13px;border-top:1px solid var(--reed);display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--moss)}
+.sidetot b{font-size:16px;color:var(--bone)}
+
+.cmptbl{border:1px solid var(--reed);background:var(--silt);margin-bottom:20px}
+.cmptbl th{background:var(--silt2);border-bottom:2px solid var(--gator);cursor:default}
+.cmptbl th.a{color:var(--mud)} .cmptbl th.b{color:var(--water)}
+.cmptbl td{font-family:var(--mono);font-size:12.5px;padding:5px 10px}
+.cmptbl td.lbl{text-align:left;font-family:var(--body);font-size:12.5px;color:var(--moss)}
+.cmptbl td.lbl b{color:var(--bone);font-weight:600}
+.cmptbl tr.sect td{background:var(--reed);color:var(--gator);font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;text-align:left;padding:4px 10px}
+
+/* ---------- modal ---------- */
+.scrim{position:fixed;inset:0;background:rgba(5,10,8,.72);z-index:55;display:none}
+.scrim.on{display:block}
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:88vh;overflow:auto;background:var(--silt);border:1px solid var(--gator);z-index:60;display:none;padding:20px 22px}
+.modal.on{display:block}
+.modal h3{font-family:var(--disp);font-weight:800;font-size:30px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 3px}
+.modal p.lead{color:var(--moss);font-size:13px;margin:0 0 16px}
+.lockrow{display:flex;gap:8px;align-items:flex-end;margin-bottom:16px}
+.lockrow .field{flex:1;margin:0}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.wgrid .w{border:1px solid var(--reed);padding:6px 8px;background:var(--bog)}
+.wgrid .w label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--moss);margin-bottom:3px}
+.wgrid .w input{width:100%;padding:4px 6px;border:1px solid var(--reed);background:var(--silt);color:var(--bone);font-family:var(--mono)}
+.wgrid .w input:disabled{opacity:.45}
+.wgrid .w.warn{border-color:var(--eye)}
+.wgrid .w small{display:block;font-family:var(--mono);font-size:9px;color:var(--eye);margin-top:3px}
+.modalfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;border-top:1px solid var(--reed);padding-top:14px}
+.modal .msg{font-family:var(--mono);font-size:11.5px;min-height:16px}
+.modal .msg.bad{color:var(--blood)} .modal .msg.good{color:var(--gator)}
+
+@media (max-width:1000px){
+  .split{grid-template-columns:1fr}
+  .rail{position:static}
+  .tradegrid,.h2hstrips{grid-template-columns:1fr}
+  .h2hpick{grid-template-columns:1fr;gap:8px}
+  .h2hpick .vs{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="scales"></div>
+
+<header class="topbar">
+  <div class="brand"><h1>Bre<b>jo</b></h1><span class="sub" id="subtitle">NBA</span></div>
+  <div class="spacer"></div>
+  <div class="ctl" id="ctlWindow" hidden>
+    <span>Janela de jogos</span>
+    <div class="switch" role="group" id="winSwitch">
+      <button data-w="5">5</button><button data-w="10">10</button>
+      <button data-w="30">30</button><button data-w="0" aria-pressed="true">Tudo</button>
+    </div>
+  </div>
+  <div class="ctl" id="ctlDnp" hidden>
+    <span>Jogos sem minuto</span>
+    <div class="switch" role="group">
+      <button id="dnpOut" aria-pressed="true">Excluir</button><button id="dnpIn" aria-pressed="false">Incluir</button>
+    </div>
+  </div>
+  <div class="ctl" id="ctlScoring" hidden>
+    <span>Scoring</span>
+    <button class="btn ghost" id="scoringBtn">—</button>
+  </div>
+  <div class="ctl" id="ctlUpdate" hidden>
+    <span id="lastGame">jogo mais recente: —</span>
+    <button class="btn" id="updateBtn">Atualizar</button>
+  </div>
+  <button class="btn ghost" id="reloadBtn" hidden>Refazer base</button>
+</header>
+
+<div class="upbar" id="upbar" hidden><span id="upmsg"></span></div>
+
+<nav class="tabs" role="tablist" id="tabs" hidden>
+  <button role="tab" aria-selected="true" data-view="stats">Stats</button>
+  <button role="tab" aria-selected="false" data-view="h2h">H2H</button>
+  <button role="tab" aria-selected="false" data-view="trade">Trade<span class="count" id="tCount"></span></button>
+</nav>
+
+<main>
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="setup">
+      <h2>Montar a base</h2>
+      <p>Os jogos vem direto do CDN da NBA. Nao precisa rodar nada fora daqui.</p>
+
+      <div class="setrow">
+        <div class="field">
+          <label for="profund">Quantos jogos por time</label>
+          <select id="profund">
+            <option value="20">20 jogos (rapido)</option>
+            <option value="40" selected>40 jogos</option>
+            <option value="60">60 jogos (mais lento)</option>
+          </select>
+        </div>
+        <button class="btn" id="buildBtn" style="align-self:end;padding:9px 18px">Construir</button>
+      </div>
+
+      <div class="prog" id="prog" hidden>
+        <div class="progbar"><i id="progfill"></i></div>
+        <div class="progtxt" id="progtxt"></div>
+      </div>
+      <div class="err" id="err"></div>
+
+      <div class="steps">
+        <b>Caminho recomendado:</b> publicar o <code>games.json</code> pelo
+        GitHub Actions. O servidor busca o CDN sem restricao e o app so le o
+        arquivo — atualiza sozinho todo dia, sem ninguem mexer.<br>
+        <b>Aqui no navegador:</b> depende do CDN da NBA liberar CORS. Se der
+        "Failed to fetch", e bloqueio do lado deles.
+      </div>
+
+      <details class="alt">
+        <summary>Como publicar (uma vez so)</summary>
+        <div class="inner" style="margin-top:10px">
+          <p class="note" style="line-height:1.9">
+            1. Suba <code>brejo.html</code>, <code>build_data.py</code> e
+               <code>.github/workflows/update.yml</code> num repositorio<br>
+            2. Ligue o GitHub Pages nas configuracoes<br>
+            3. Aba Actions &rarr; "Atualizar base" &rarr; Run workflow<br>
+            4. Pronto: todo dia as 9h ele refaz o <code>games.json</code> sozinho
+          </p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="view" id="v-stats">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="switch" role="group">
+        <button id="modeCons" aria-pressed="true">Consolidado</button>
+        <button id="modeDet" aria-pressed="false">Detalhe</button>
+      </div>
+      <span class="note" id="statsModeNote">Uma linha por jogador, com as médias recalculadas na janela de jogos escolhida.</span>
+    </div>
+
+    <!-- consolidado -->
+    <div id="consWrap" class="split">
+      <aside class="rail">
+        <h3>Filtros</h3>
+        <div class="field"><label for="fName">Nome</label><input type="text" id="fName" placeholder="jokic, luka..."></div>
+        <div class="field"><label for="fTeam">Time</label><select id="fTeam"></select></div>
+        <div class="field"><label>Posição</label><div class="chips" id="fPos"></div></div>
+        <div class="field"><label for="fMinG">Jogos mínimos na janela</label><input type="number" id="fMinG" value="1" min="0"></div>
+        <div class="field"><label for="fMinMpg">MPG mínimo</label><input type="number" id="fMinMpg" value="0" min="0" step="1"></div>
+        <div class="field"><label for="fMinFppg">FPTS/J mínimo</label><input type="number" id="fMinFppg" value="0" min="0" step="1"></div>
+        <div class="field"><label for="fMaxAge">Idade máxima</label><input type="number" id="fMaxAge" value="" min="18" step="0.5" placeholder="sem limite"></div>
+        <button class="btn ghost" id="fReset" style="width:100%">Limpar filtros</button>
+      </aside>
+      <div>
+        <div class="tablewrap"><table><thead><tr id="consHead"></tr></thead><tbody id="consBody"></tbody></table></div>
+        <div class="tfoot"><span id="consInfo"></span><span id="consLegend"></span></div>
+      </div>
+    </div>
+
+    <!-- detalhe: mesma grade do consolidado para as tabelas terem a mesma largura -->
+    <div id="detWrap" class="split" hidden>
+      <aside class="rail">
+        <h3>Jogador</h3>
+        <div class="field" style="position:relative">
+          <label for="detPick">Buscar</label>
+          <input type="text" id="detPick" placeholder="Digite o nome..." autocomplete="off">
+          <div class="sugg" id="detSugg" style="left:0;right:0"></div>
+        </div>
+        <div id="detResumo"></div>
+      </aside>
+      <div id="detBody"></div>
+    </div>
+  </section>
+
+  <!-- H2H -->
+  <section class="view" id="v-h2h">
+    <div class="h2hpick">
+      <div class="field" style="position:relative;margin:0"><label for="h2hA">Jogador A</label><input type="text" id="h2hA" placeholder="Buscar..." autocomplete="off"><div class="sugg" id="suggH2hA" style="left:0;right:0"></div></div>
+      <div class="vs">×</div>
+      <div class="field" style="position:relative;margin:0"><label for="h2hB">Jogador B</label><input type="text" id="h2hB" placeholder="Buscar..." autocomplete="off"><div class="sugg" id="suggH2hB" style="left:0;right:0"></div></div>
+    </div>
+    <div id="h2hBody"></div>
+  </section>
+
+  <!-- TRADE -->
+  <section class="view" id="v-trade">
+    <div class="tradegrid">
+      <div class="side A">
+        <header><h3>Eu envio</h3><span class="cnt" id="cntA">vazio</span></header>
+        <div class="picker"><input type="text" id="pickA" placeholder="Buscar jogador..." autocomplete="off"><div class="sugg" id="suggA"></div></div>
+        <div class="addrow">
+          <select id="pkYearA"></select>
+          <select id="pkRoundA"><option value="1ª">1ª rodada</option><option value="2ª">2ª rodada</option></select>
+          <button class="btn ghost sm" id="addPickA">+ Pick</button>
+          <input type="number" id="faabA" min="0" step="1" placeholder="FAAB">
+          <button class="btn ghost sm" id="addFaabA">+ FAAB</button>
+        </div>
+        <ul class="assets" id="listA"></ul>
+        <div class="sidetot"><span>FPTS/jogo somado</span><b id="totA">0.0</b></div>
+      </div>
+      <div class="side B">
+        <header><h3>Eu recebo</h3><span class="cnt" id="cntB">vazio</span></header>
+        <div class="picker"><input type="text" id="pickB" placeholder="Buscar jogador..." autocomplete="off"><div class="sugg" id="suggB"></div></div>
+        <div class="addrow">
+          <select id="pkYearB"></select>
+          <select id="pkRoundB"><option value="1ª">1ª rodada</option><option value="2ª">2ª rodada</option></select>
+          <button class="btn ghost sm" id="addPickB">+ Pick</button>
+          <input type="number" id="faabB" min="0" step="1" placeholder="FAAB">
+          <button class="btn ghost sm" id="addFaabB">+ FAAB</button>
+        </div>
+        <ul class="assets" id="listB"></ul>
+        <div class="sidetot"><span>FPTS/jogo somado</span><b id="totB">0.0</b></div>
+      </div>
+    </div>
+
+    <div class="cmptbl"><table><thead><tr id="cmpHead"></tr></thead><tbody id="cmpBody"></tbody></table></div>
+
+    <div class="tablewrap" style="max-height:none"><table><thead><tr id="tradeHead"></tr></thead><tbody id="tradeBody"></tbody></table></div>
+    <div class="tfoot"><span id="tradeInfo"></span></div>
+  </section>
+</main>
+
+<!-- MODAL SCORING -->
+<div class="scrim" id="scrim"></div>
+<div class="modal" id="scoringModal" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+  <h3 id="smTitle">Scoring</h3>
+  <p class="lead">Estes pesos multiplicam as estatísticas de cada jogo. Alterar recalcula tudo na hora.</p>
+  <div class="lockrow" id="lockRow">
+    <div class="field"><label for="pwd">Senha para editar</label><input type="password" id="pwd" autocomplete="off" inputmode="numeric"></div>
+    <button class="btn" id="unlockBtn">Destravar</button>
+  </div>
+  <div class="msg" id="smMsg"></div>
+  <div class="wgrid" id="wgrid"></div>
+  <div class="modalfoot">
+    <button class="btn ghost" id="smReset">Voltar ao padrão</button>
+    <button class="btn ghost" id="smClose">Fechar</button>
+    <button class="btn" id="smSave" disabled>Salvar</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const PASSWORD = "7163";
+const DEFAULT_SCORING = {pts:1, trb:1.2, ast:1.5, stl:3, blk:3, tov:-1, tech:-0.5};
+
+const EDITABLE = [
+  ["pts","Pontos"],["trb","Rebotes"],["orb","Reb. of."],["drb","Reb. def."],
+  ["ast","Assist."],["stl","Roubos"],["blk","Tocos"],["tov","Turnovers"],
+  ["fg3","Cestas de 3"],["fg","Cestas"],["fga","Tentativas"],
+  ["ft","Lances livres"],["fta","LL tentados"],["pf","Faltas"],
+  ["tech","Falta técnica"]
+];
+const NO_DATA = new Set(["tech"]);
+
+const S = {
+  data:null, IDX:{}, players:[], byId:{},
+  scoring:{...DEFAULT_SCORING}, scoringV:0, unlocked:false,
+  window:0, includeDNP:false,
+  statsMode:"cons",
+  sort:{key:"fppg", dir:-1},
+  filters:{name:"",team:"",pos:new Set(),minG:1,minMpg:0,minFppg:0,maxAge:null},
+  detId:null, h2h:{a:null,b:null},
+  A:[], B:[]
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = (v,d=1) => (v===null||v===undefined||isNaN(v)) ? "—" : Number(v).toFixed(d);
+const money = v => (v===null||v===undefined||isNaN(v)) ? "—" : "$" + (v/1e6).toFixed(1) + "M";
+
+/* ============================================================
+   Carga
+   ============================================================ */
+function aplicarBase(d){
+  S.data = d;
+  S.IDX = {};
+  d.cols.forEach((c,i) => S.IDX[c] = i);
+
+  S.players = d.players.map(p => ({...p, g: p.g || [], _cache:null}));
+  S.byId = {};
+  S.players.forEach(p => S.byId[p.id] = p);
+
+  S.scoring = {...DEFAULT_SCORING, ...(d.scoring || {})};
+  S.scoringV++;
+
+  const m = d.meta || {};
+  const janela = m.jogos_por_jogador ? `últimos ${m.jogos_por_jogador} jogos` : "temporada completa";
+  $("#subtitle").textContent = `${janela} · ${S.players.length} jogadores` + (m.season ? ` · ${m.season}` : "");
+
+  $("#setup").hidden = true;
+  $("#tabs").hidden = false;
+  ["#ctlWindow","#ctlDnp","#ctlScoring","#ctlUpdate","#reloadBtn"].forEach(s => $(s).hidden = false);
+
+  buildFilterOptions();
+  buildPickYears();
+  updateScoringBtn();
+  renderConsHead();
+  redraw();              // <- a tabela precisa aparecer sem filtro nenhum
+  updateCounts();
+  updateLastGame();
+  showTab("stats");
+}
+
+/* ============================================================
+   Núcleo
+   ============================================================ */
+function gv(row, key){
+  const i = S.IDX[key];
+  return i === undefined ? null : row[i];
+}
+function played(row){
+  const mp = gv(row,"mp");
+  return typeof mp === "number" && mp > 0;
+}
+function windowOf(p, win, dnp){
+  let g = p.g;
+  if(!dnp) g = g.filter(played);
+  if(win > 0) g = g.slice(-win);
+  return g;
+}
+function fptsOfGame(row){
+  let t = 0;
+  for(const k in S.scoring){
+    if(NO_DATA.has(k)) continue;
+    const v = gv(row,k);
+    if(typeof v === "number") t += v * S.scoring[k];
+  }
+  return t;
+}
+const SUMKEYS = ["mp","fg","fga","fg3","fg3a","ft","fta","orb","drb","trb","ast","stl","blk","tov","pf","pts"];
+
+/** Agrega um jogador. Sem argumentos usa a janela de jogos global;
+    com argumentos permite comparar várias janelas de uma vez. */
+function agg(p, win, dnp){
+  if(win === undefined) win = S.window;
+  if(dnp === undefined) dnp = S.includeDNP;
+  const key = win + "|" + dnp + "|" + S.scoringV;
+  if(!p._cache) p._cache = new Map();
+  if(p._cache.has(key)) return p._cache.get(key);
+
+  const games = windowOf(p, win, dnp);
+  const t = {};
+  SUMKEYS.forEach(k => t[k] = 0);
+  let fpts = 0;
+  games.forEach(row => {
+    SUMKEYS.forEach(k => { const v = gv(row,k); if(typeof v === "number") t[k] += v; });
+    fpts += fptsOfGame(row);
+  });
+
+  const n = games.length;
+  const v = {n, tot:t, fpts:Math.round(fpts*10)/10};
+  v.fppg = n ? Math.round(fpts/n*10)/10 : NaN;
+  v.mpg  = n ? Math.round(t.mp/n*10)/10 : NaN;
+  v.fppm = t.mp > 0 ? Math.round(fpts/t.mp*100)/100 : NaN;
+  SUMKEYS.forEach(k => v[k+"_pg"] = n ? t[k]/n : NaN);
+  v.fgp  = t.fga  > 0 ? t.fg/t.fga   : NaN;
+  v.fg3p = t.fg3a > 0 ? t.fg3/t.fg3a : NaN;
+  v.ftp  = t.fta  > 0 ? t.ft/t.fta   : NaN;
+
+  p._cache.set(key, v);
+  return v;
+}
+
+function windowLabel(){
+  const w = S.window ? `últimos ${S.window} jogos` : "temporada inteira";
+  return `janela de jogos: ${w} · ${S.includeDNP ? "com" : "sem"} jogos zerados`;
+}
+
+/* ============================================================
+   STATS — consolidado
+   ============================================================ */
+const CONS = [
+  {k:"name",l:"Jogador",txt:true},{k:"team",l:"Time",txt:true},{k:"pos",l:"Pos",txt:true},
+  {k:"age",l:"Idade",d:1},{k:"n",l:"J",d:0},{k:"mpg",l:"MPG",d:1},
+  {k:"pts_pg",l:"PTS",d:1},{k:"trb_pg",l:"REB",d:1},{k:"ast_pg",l:"AST",d:1},
+  {k:"stl_pg",l:"STL",d:1},{k:"blk_pg",l:"BLK",d:1},{k:"tov_pg",l:"TOV",d:1},
+  {k:"fg3_pg",l:"3PM",d:1},{k:"fgp",l:"FG%",pct:true},
+  {k:"fppg",l:"FPTS/J",d:1},{k:"fppm",l:"FP/MIN",d:2},{k:"fpts",l:"FPTS",d:1}
+];
+const TXT = new Set(["name","team","pos"]);
+
+function valOf(p, k){
+  if(k === "name") return p.name;
+  if(k === "team") return p.team || "";
+  if(k === "pos")  return p.pos || "";
+  if(k === "age")  return p.age;
+  return agg(p)[k];
+}
+
+function consList(){
+  const f = S.filters, q = f.name.toLowerCase().trim();
+  const out = S.players.filter(p => {
+    if(q && !p.name.toLowerCase().includes(q)) return false;
+    if(f.team && p.team !== f.team) return false;
+    if(f.pos.size && !(p.pos||"").split(/[-,]/).some(x => f.pos.has(x.trim()))) return false;
+    if(f.maxAge && p.age && p.age > f.maxAge) return false;
+    const a = agg(p);
+    if(a.n < f.minG) return false;
+    if(f.minMpg > 0 && !(a.mpg >= f.minMpg)) return false;
+    if(f.minFppg > 0 && !(a.fppg >= f.minFppg)) return false;
+    return true;
+  });
+  const {key,dir} = S.sort, txt = TXT.has(key);
+  return out.sort((x,y) => {
+    if(txt) return String(valOf(x,key)).localeCompare(String(valOf(y,key)),"pt") * dir;
+    const a = valOf(x,key), b = valOf(y,key);
+    const an = (a===null||a===undefined||isNaN(a)), bn = (b===null||b===undefined||isNaN(b));
+    if(an&&bn) return 0; if(an) return 1; if(bn) return -1;
+    return (a-b)*dir;
+  });
+}
+
+function renderConsHead(){
+  $("#consHead").innerHTML = CONS.map(c => {
+    const on = S.sort.key === c.k, ar = on ? (S.sort.dir===1?"▲":"▼") : "◆";
+    return `<th class="${c.txt?"txt":""}" data-k="${c.k}" ${on?`aria-sort="${S.sort.dir===1?"ascending":"descending"}"`:""}>${c.l}<span class="ar">${ar}</span></th>`;
+  }).join("") + `<th class="txt" style="cursor:default">Ações</th>`;
+  $$("#consHead th[data-k]").forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    S.sort = (S.sort.key === k) ? {key:k,dir:-S.sort.dir} : {key:k,dir:TXT.has(k)?1:-1};
+    renderConsHead(); renderCons();
+  });
+}
+
+function renderCons(){
+  const list = consList();
+  $("#consBody").innerHTML = list.map(p => {
+    const cells = CONS.map(c => {
+      if(c.k === "name") return `<td class="txt"><button class="pname" data-det="${esc(p.id)}">${esc(p.name)}</button></td>`;
+      if(c.txt) return `<td class="txt">${esc(valOf(p,c.k) || "—")}</td>`;
+      const v = valOf(p,c.k);
+      if(c.pct) return `<td>${(v===null||v===undefined||isNaN(v))?"—":(v*100).toFixed(1)}</td>`;
+      return `<td class="${c.k==="fppg"?"fptcell":""}">${fmt(v,c.d)}</td>`;
+    }).join("");
+    return `<tr>${cells}<td class="txt">
+      <button class="act" data-h2h="${esc(p.id)}" title="Mandar para o H2H">H2H</button>
+      <button class="act a" data-sa="${esc(p.id)}" title="Adicionar ao lado que envia">A</button>
+      <button class="act b" data-sb="${esc(p.id)}" title="Adicionar ao lado que recebe">B</button>
+    </td></tr>`;
+  }).join("") || `<tr><td colspan="${CONS.length+1}" class="txt" style="padding:26px;text-align:center;color:var(--moss)">Nenhum jogador com esses filtros. Baixe o mínimo de jogos ou amplie a janela de jogos.</td></tr>`;
+
+  $("#consInfo").textContent = `${list.length} de ${S.players.length} jogadores · ${windowLabel()}`;
+  $("#consLegend").textContent = "Médias por jogo na janela; FPTS é o acumulado nela.";
+}
+
+$("#consBody").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.det) return openDetail(b.dataset.det);
+  if(b.dataset.h2h) return sendToH2H(b.dataset.h2h);
+  if(b.dataset.sa)  return addAsset("A", {type:"player", id:b.dataset.sa});
+  if(b.dataset.sb)  return addAsset("B", {type:"player", id:b.dataset.sb});
+});
+
+/* ============================================================
+   Assinatura: linha d'água
+   ============================================================ */
+function waterline(p, title){
+  const all = p.g;
+  if(!all.length) return `<div class="waterline"><h4>${esc(title||"Forma")}</h4><p class="note">Sem jogos registrados.</p></div>`;
+  const inWin = new Set(windowOf(p, S.window, S.includeDNP));
+  const vals = all.map(r => played(r) ? fptsOfGame(r) : null);
+  const max = Math.max(1, ...vals.filter(v => v !== null));
+  const bars = all.map((r,i) => {
+    const v = vals[i];
+    const d = esc(gv(r,"date") || "");
+    if(v === null) return `<i class="dnp" title="${d} — sem minutos"></i>`;
+    const h = Math.max(4, Math.round(v/max*100));
+    const on = inWin.has(r);
+    return `<i class="${on?"on":"off"}" style="height:${h}%" title="${d} ${esc(gv(r,"opp")||"")} — ${v.toFixed(1)} FPTS em ${fmt(gv(r,"mp"),1)} min"></i>`;
+  }).join("");
+  const a = agg(p);
+  return `<div class="waterline">
+    <h4>${esc(title||"Forma na temporada")}<em>${all.length} jogos · ${fmt(a.fppg,1)} FPTS/jogo na janela</em></h4>
+    <div class="bars">${bars}</div><div class="surface"></div>
+    <div class="striplegend">
+      <span><b class="sw-on"></b>na janela de jogos</span>
+      <span><b class="sw-off"></b>fora da janela</span>
+      <span><b class="sw-dnp"></b>sem minutos</span>
+      <span>topo da escala: ${max.toFixed(0)} FPTS</span>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   STATS — detalhe
+   ============================================================ */
+const DET = [
+  {k:"date",l:"Data",txt:true},{k:"tm",l:"Time",txt:true},{k:"loc",l:"C/F",txt:true},
+  {k:"opp",l:"Adv",txt:true},{k:"placar",l:"Placar",txt:true},{k:"res",l:"R",txt:true},
+  {k:"mp",l:"MP",d:1},
+  {k:"fg",l:"FG",d:0},{k:"fga",l:"FGA",d:0},{k:"fg3",l:"3P",d:0},{k:"fg3a",l:"3PA",d:0},
+  {k:"ft",l:"FT",d:0},{k:"fta",l:"FTA",d:0},{k:"orb",l:"ORB",d:0},{k:"drb",l:"DRB",d:0},
+  {k:"trb",l:"REB",d:0},{k:"ast",l:"AST",d:0},{k:"stl",l:"STL",d:0},{k:"blk",l:"BLK",d:0},
+  {k:"tov",l:"TOV",d:0},{k:"pf",l:"PF",d:0},{k:"pts",l:"PTS",d:0},{k:"pm",l:"+/-",d:0}
+];
+
+function openDetail(id){
+  S.detId = id;
+  setStatsMode("det");
+  showTab("stats");
+}
+
+function renderDetail(){
+  const box = $("#detBody"), resumo = $("#detResumo");
+  if(!S.detId){
+    box.innerHTML = `<div class="empty" style="border:1px dashed var(--reed);padding:44px">Busque um jogador ao lado, ou clique num nome na visão consolidada.</div>`;
+    resumo.innerHTML = "";
+    return;
+  }
+  const p = S.byId[S.detId];
+  if(!p){ box.innerHTML = `<p class="note">Jogador não encontrado.</p>`; return; }
+
+  $("#detPick").value = p.name;
+  const a = agg(p);
+  const inWin = new Set(windowOf(p, S.window, S.includeDNP));
+
+  resumo.innerHTML = `
+    <div class="note" style="line-height:2">
+      <div style="color:var(--bone);font-family:var(--body);font-size:15px;font-weight:600">${esc(p.name)}</div>
+      ${esc(p.team||"—")} · ${esc(p.pos||"—")}<br>
+      ${p.age!=null?`${fmt(p.age,1)} anos`:"idade —"}${p.bio&&p.bio.exp!=null?` · ${p.bio.exp} temporadas`:""}<br>
+      ${p.contract?`${money(p.contract.salary)} · ${p.contract.years} ano(s)`:""}
+      <hr style="border:0;border-top:1px solid var(--reed);margin:8px 0">
+      Na janela de jogos:<br>
+      ${a.n} jogos · ${fmt(a.mpg,1)} MPG<br>
+      ${fmt(a.fppg,1)} FPTS/jogo<br>
+      ${fmt(a.fppm,2)} FPTS/min
+    </div>`;
+
+  const rows = p.g.slice().reverse().map(r => {
+    const on = inWin.has(r);
+    const dnp = !played(r);
+    const cells = DET.map(c => {
+      if(c.k === "placar"){
+        const t = gv(r,"tmpts"), o = gv(r,"opppts");
+        return `<td class="txt">${(t==null||o==null)?"—":`${t}–${o}`}</td>`;
+      }
+      const v = gv(r,c.k);
+      if(c.txt) return `<td class="txt">${esc(v ?? "—")}</td>`;
+      return `<td>${fmt(v,c.d)}</td>`;
+    }).join("");
+    const reason = gv(r,"reason");
+    return `<tr class="${on?"":"fora"}">${cells}<td class="fptcell">${dnp ? (reason?esc(reason):"—") : fptsOfGame(r).toFixed(1)}</td></tr>`;
+  }).join("");
+
+  box.innerHTML = `
+    ${waterline(p, p.name)}
+    <div class="tablewrap"><table>
+      <thead><tr>${DET.map(c=>`<th class="${c.txt?"txt":""}" style="cursor:default">${c.l}</th>`).join("")}<th style="cursor:default">FPTS</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="${DET.length+1}" class="txt" style="padding:20px;text-align:center;color:var(--moss)">Sem jogos.</td></tr>`}</tbody>
+    </table></div>
+    <div class="tfoot"><span>${p.g.length} jogos na temporada · linhas apagadas estão fora da janela de jogos</span></div>`;
+}
+
+/* ============================================================
+   H2H
+   ============================================================ */
+const H2H_ROWS = [
+  {s:"Perfil"},
+  {k:"team",l:"Time",txt:true},{k:"pos",l:"Posição",txt:true},
+  {k:"age",l:"Idade",d:1},{b:"exp",l:"Temporadas",d:0},
+  {b:"height",l:"Altura"},{b:"weight",l:"Peso (lb)"},{b:"born",l:"Nascimento"},
+  {b:"college",l:"Faculdade"},{b:"draft",l:"Draft"},{b:"country",l:"País"},
+  {c:"salary",l:"Salário"},{c:"years",l:"Anos de contrato"},
+  {s:"Volume na janela de jogos"},
+  {k:"n",l:"Jogos",d:0},{k:"mpg",l:"Minutos/jogo",d:1},{k:"pts_pg",l:"Pontos",d:1},
+  {k:"trb_pg",l:"Rebotes",d:1},{k:"ast_pg",l:"Assistências",d:1},{k:"stl_pg",l:"Roubos",d:1},
+  {k:"blk_pg",l:"Tocos",d:1},{k:"fg3_pg",l:"Cestas de 3",d:1},
+  {k:"tov_pg",l:"Turnovers",d:1,lower:true},{k:"pf_pg",l:"Faltas",d:1,lower:true},
+  {s:"Aproveitamento"},
+  {k:"fgp",l:"FG%",pct:true},{k:"fg3p",l:"3P%",pct:true},{k:"ftp",l:"LL%",pct:true},
+  {s:"Fantasy"},
+  {k:"fppg",l:"FPTS por jogo",d:1},{k:"fppm",l:"FPTS por minuto",d:2},{k:"fpts",l:"FPTS na janela",d:1}
+];
+
+function h2hVal(p, r){
+  if(r.txt) return p[r.k] || "—";
+  if(r.b) return (p.bio && p.bio[r.b] !== undefined && p.bio[r.b] !== null) ? p.bio[r.b] : null;
+  if(r.c) return p.contract ? p.contract[r.c] : null;
+  if(r.k === "age") return p.age;
+  return agg(p)[r.k];
+}
+
+function renderH2H(){
+  const box = $("#h2hBody");
+  const pa = S.h2h.a ? S.byId[S.h2h.a] : null;
+  const pb = S.h2h.b ? S.byId[S.h2h.b] : null;
+  if(!pa || !pb){
+    box.innerHTML = `<div class="empty" style="border:1px dashed var(--reed);padding:44px">Escolha dois jogadores acima para comparar.</div>`;
+    return;
+  }
+
+  const rows = H2H_ROWS.map(r => {
+    if(r.s) return `<tr class="sect"><td colspan="3">${r.s}</td></tr>`;
+    const va = h2hVal(pa,r), vb = h2hVal(pb,r);
+    let wa = false, wb = false;
+    const comparavel = !r.txt && typeof va === "number" && typeof vb === "number"
+      && !isNaN(va) && !isNaN(vb) && va !== vb && r.b !== "born";
+    if(comparavel){
+      if(r.lower){ wa = va < vb; wb = vb < va; } else { wa = va > vb; wb = vb > va; }
+    }
+    const show = v => {
+      if(v === null || v === undefined || v === "") return "—";
+      if(r.pct) return isNaN(v) ? "—" : (v*100).toFixed(1) + "%";
+      if(r.c === "salary") return money(v);
+      if(typeof v === "number") return fmt(v, r.d ?? 1);
+      return esc(v);
+    };
+    return `<tr>
+      <td class="l ${wa?"best":""}">${show(va)}</td>
+      <td class="mid">${r.l}</td>
+      <td class="r ${wb?"best":""}">${show(vb)}</td>
+    </tr>`;
+  }).join("");
+
+  box.innerHTML = `
+    <div class="h2hstrips">${waterline(pa, pa.name)}${waterline(pb, pb.name)}</div>
+    <div class="h2htbl"><table>
+      <thead><tr><th class="l" style="text-align:left">${esc(pa.name)}</th><th style="text-align:center">${windowLabel()}</th><th class="r" style="text-align:right">${esc(pb.name)}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function sendToH2H(id){
+  if(!S.h2h.a || (S.h2h.a && S.h2h.b)) { S.h2h.a = id; S.h2h.b = null; }
+  else S.h2h.b = id;
+  $("#h2hA").value = S.h2h.a ? S.byId[S.h2h.a].name : "";
+  $("#h2hB").value = S.h2h.b ? S.byId[S.h2h.b].name : "";
+  showTab("h2h"); renderH2H();
+}
+
+/* ============================================================
+   TRADE
+   ============================================================ */
+function addAsset(side, item){
+  if(item.type === "player"){
+    const other = side === "A" ? S.B : S.A;
+    const oi = other.findIndex(x => x.type === "player" && x.id === item.id);
+    if(oi >= 0) other.splice(oi,1);
+    const arr = S[side];
+    if(arr.some(x => x.type === "player" && x.id === item.id)) return;
+    arr.push(item);
+  } else S[side].push(item);
+  renderTrade(); updateCounts();
+}
+function removeAsset(side, i){ S[side].splice(i,1); renderTrade(); updateCounts(); }
+
+const TRADE_COLS = [
+  {k:"side",l:"Lado",txt:true},{k:"name",l:"Jogador",txt:true},{k:"team",l:"Time",txt:true},
+  {k:"pos",l:"Pos",txt:true},{k:"age",l:"Idade",d:1},{k:"exp",l:"Temp",d:0},
+  {k:"salary",l:"Salário"},{k:"years",l:"Anos",d:0},
+  {k:"n",l:"J",d:0},{k:"mpg",l:"MPG",d:1},
+  {k:"fppg",l:"FPTS/J",d:1},{k:"fppm",l:"FP/MIN",d:2},
+  {k:"pts_pg",l:"PTS",d:1},{k:"trb_pg",l:"REB",d:1},{k:"ast_pg",l:"AST",d:1},
+  {k:"stl_pg",l:"STL",d:1},{k:"blk_pg",l:"BLK",d:1},{k:"tov_pg",l:"TOV",d:1},{k:"fpts",l:"FPTS",d:1}
+];
+
+function assetLabel(x){
+  if(x.type === "pick") return `Pick ${x.year} · ${x.round}`;
+  if(x.type === "faab") return `FAAB ${x.amount}`;
+  return "";
+}
+const sidePlayers = side => S[side].filter(x => x.type === "player").map(x => S.byId[x.id]).filter(Boolean);
+
+/* somas do lado, para uma janela de jogos arbitrária */
+function sideFppg(side, win, dnp){
+  return sidePlayers(side).reduce((acc,p) => {
+    const v = agg(p, win, dnp).fppg; return acc + (isNaN(v) ? 0 : v);
+  }, 0);
+}
+function sideFppm(side, win, dnp){
+  let fp = 0, mn = 0;
+  sidePlayers(side).forEach(p => {
+    const a = agg(p, win, dnp);
+    fp += a.fpts; mn += a.tot.mp;
+  });
+  return mn > 0 ? fp/mn : NaN;
+}
+function sideAge(side){
+  const idades = sidePlayers(side).map(p => p.age).filter(v => typeof v === "number");
+  return idades.length ? idades.reduce((a,b)=>a+b,0)/idades.length : NaN;
+}
+
+const CMP_WINS = [[0,"Temporada"],[30,"Últimos 30"],[10,"Últimos 10"],[5,"Últimos 5"]];
+
+function renderCompare(){
+  $("#cmpHead").innerHTML =
+    `<th class="txt" style="cursor:default">Comparativo</th>
+     <th class="a" style="cursor:default;text-align:right">Eu envio</th>
+     <th class="b" style="cursor:default;text-align:right">Eu recebo</th>`;
+
+  if(!sidePlayers("A").length && !sidePlayers("B").length){
+    $("#cmpBody").innerHTML = `<tr><td colspan="3" class="txt" style="padding:22px;text-align:center;color:var(--moss)">Adicione jogadores para ver o comparativo.</td></tr>`;
+    return;
+  }
+
+  const linhas = [];
+  const linha = (label, va, vb, d, maiorMelhor) => {
+    let wa = false, wb = false;
+    if(!isNaN(va) && !isNaN(vb) && Math.abs(va-vb) > 1e-9 && maiorMelhor !== null){
+      if(maiorMelhor){ wa = va > vb; wb = vb > va; } else { wa = va < vb; wb = vb < va; }
+    }
+    linhas.push(`<tr>
+      <td class="lbl">${label}</td>
+      <td class="${wa?"best":""}" style="text-align:right">${fmt(va,d)}</td>
+      <td class="${wb?"best":""}" style="text-align:right">${fmt(vb,d)}</td>
+    </tr>`);
+  };
+
+  linhas.push(`<tr class="sect"><td colspan="3">FPTS por jogo — somado</td></tr>`);
+  CMP_WINS.forEach(([w,rot]) => {
+    [[false,"sem zerados"],[true,"com zerados"]].forEach(([dnp,sufixo]) => {
+      linha(`<b>${rot}</b> · ${sufixo}`, sideFppg("A",w,dnp), sideFppg("B",w,dnp), 1, true);
+    });
+  });
+
+  linhas.push(`<tr class="sect"><td colspan="3">FPTS por minuto — agregado</td></tr>`);
+  CMP_WINS.forEach(([w,rot]) => {
+    [[false,"sem zerados"],[true,"com zerados"]].forEach(([dnp,sufixo]) => {
+      linha(`<b>${rot}</b> · ${sufixo}`, sideFppm("A",w,dnp), sideFppm("B",w,dnp), 2, true);
+    });
+  });
+
+  linhas.push(`<tr class="sect"><td colspan="3">Elenco</td></tr>`);
+  linha("<b>Idade média</b>", sideAge("A"), sideAge("B"), 1, null);
+  linha("<b>Jogadores</b>", sidePlayers("A").length, sidePlayers("B").length, 0, null);
+
+  $("#cmpBody").innerHTML = linhas.join("");
+}
+
+function renderTrade(){
+  ["A","B"].forEach(side => {
+    const arr = S[side];
+    const players = arr.filter(x => x.type === "player");
+    $("#cnt"+side).textContent = arr.length
+      ? `${players.length} jogador(es) · ${arr.length - players.length} outro(s)`
+      : "vazio";
+
+    $("#list"+side).innerHTML = arr.length ? arr.map((x,i) => {
+      if(x.type === "player"){
+        const p = S.byId[x.id]; if(!p) return "";
+        const a = agg(p);
+        return `<li>
+          <span class="nm">${esc(p.name)}<small>${esc(p.team||"—")} · ${esc(p.pos||"—")} · ${p.age!=null?fmt(p.age,1)+"a":"—"} · ${a.n}J · ${fmt(a.mpg,1)} MPG</small></span>
+          <span class="val">${fmt(a.fppg,1)}</span>
+          <button class="act" data-rm="${side}|${i}" aria-label="Remover">×</button></li>`;
+      }
+      return `<li class="extra">
+        <span class="nm">${esc(assetLabel(x))}</span>
+        <button class="act" data-rm="${side}|${i}" aria-label="Remover">×</button></li>`;
+    }).join("") : `<li class="empty">Vazio. Busque um jogador, ou some picks e FAAB.</li>`;
+
+    $("#list"+side).querySelectorAll("[data-rm]").forEach(b => b.onclick = () => {
+      const [s,i] = b.dataset.rm.split("|"); removeAsset(s, +i);
+    });
+
+    $("#tot"+side).textContent = fmt(sideFppg(side, S.window, S.includeDNP), 1);
+  });
+
+  renderCompare();
+
+  $("#tradeHead").innerHTML = TRADE_COLS.map(c => `<th class="${c.txt?"txt":""}" style="cursor:default">${c.l}</th>`).join("");
+
+  const rows = [];
+  ["A","B"].forEach(side => {
+    S[side].filter(x => x.type === "player").forEach(x => {
+      const p = S.byId[x.id]; if(!p) return;
+      const a = agg(p);
+      const cor = side === "A" ? "mud" : "water";
+      const cells = TRADE_COLS.map(c => {
+        if(c.k === "side") return `<td class="txt"><span class="pill" style="border-color:var(--${cor});color:var(--${cor})">${side==="A"?"envio":"recebo"}</span></td>`;
+        if(c.k === "name") return `<td class="txt"><button class="pname" data-det="${esc(p.id)}">${esc(p.name)}</button></td>`;
+        if(c.txt) return `<td class="txt">${esc(p[c.k] || "—")}</td>`;
+        if(c.k === "age") return `<td>${p.age!=null?fmt(p.age,1):"—"}</td>`;
+        if(c.k === "exp") return `<td>${(p.bio&&p.bio.exp!=null)?p.bio.exp:"—"}</td>`;
+        if(c.k === "salary") return `<td>${p.contract ? money(p.contract.salary) : "—"}</td>`;
+        if(c.k === "years")  return `<td>${p.contract && p.contract.years!=null ? p.contract.years : "—"}</td>`;
+        return `<td class="${c.k==="fppg"?"fptcell":""}">${fmt(a[c.k], c.d)}</td>`;
+      }).join("");
+      rows.push(`<tr>${cells}</tr>`);
+    });
+  });
+
+  $("#tradeBody").innerHTML = rows.join("") ||
+    `<tr><td colspan="${TRADE_COLS.length}" class="txt" style="padding:26px;text-align:center;color:var(--moss)">Adicione jogadores nos dois lados para ver a tabela.</td></tr>`;
+  $("#tradeBody").querySelectorAll("[data-det]").forEach(b => b.onclick = () => openDetail(b.dataset.det));
+
+  const extras = [...S.A, ...S.B].filter(x => x.type !== "player");
+  $("#tradeInfo").textContent = extras.length ? `Fora da tabela: ${extras.map(assetLabel).join(", ")}` : "";
+}
+
+function buildPickYears(){
+  const y0 = new Date().getFullYear();
+  const opts = Array.from({length:7}, (_,i) => `<option>${y0+i}</option>`).join("");
+  $("#pkYearA").innerHTML = opts; $("#pkYearB").innerHTML = opts;
+}
+
+/* ============================================================
+   Autocomplete
+   ============================================================ */
+function wireSearch(inputSel, boxSel, onPick){
+  const inp = $(inputSel), box = $(boxSel);
+  let cur = -1, items = [];
+  const close = () => { box.classList.remove("on"); box.innerHTML = ""; cur = -1; items = []; };
+  inp.addEventListener("input", () => {
+    const q = inp.value.toLowerCase().trim();
+    if(q.length < 2) return close();
+    items = S.players.filter(p => p.name.toLowerCase().includes(q))
+      .sort((a,b) => (agg(b).fppg||0) - (agg(a).fppg||0)).slice(0,12);
+    if(!items.length) return close();
+    box.innerHTML = items.map((p,i) => {
+      const a = agg(p);
+      return `<button data-id="${esc(p.id)}" data-i="${i}"><span>${esc(p.name)}</span><span class="s2">${esc(p.team||"—")} · ${fmt(a.fppg,1)} FPTS/J</span></button>`;
+    }).join("");
+    box.classList.add("on");
+    box.querySelectorAll("button").forEach(b => b.onclick = () => { onPick(b.dataset.id); close(); });
+  });
+  inp.addEventListener("keydown", e => {
+    if(!items.length) return;
+    if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+      e.preventDefault();
+      cur = (cur + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      box.querySelectorAll("button").forEach((b,i) => b.classList.toggle("cur", i === cur));
+    } else if(e.key === "Enter"){
+      e.preventDefault(); onPick(items[Math.max(0,cur)].id); close();
+    } else if(e.key === "Escape") close();
+  });
+  inp.addEventListener("blur", () => setTimeout(close, 180));
+}
+
+/* ============================================================
+   Scoring
+   ============================================================ */
+function updateScoringBtn(){
+  const txt = Object.entries(S.scoring).filter(([,v]) => v)
+    .map(([k,v]) => `${k.toUpperCase()} ${v>0?"+":""}${v}`).join(" · ");
+  $("#scoringBtn").textContent = txt || "sem pesos";
+  $("#scoringBtn").title = "Clique para ver ou editar os pesos";
+}
+function renderWeights(){
+  $("#wgrid").innerHTML = EDITABLE.map(([k,label]) => {
+    const v = S.scoring[k] ?? 0;
+    const nd = NO_DATA.has(k);
+    return `<div class="w ${nd?"warn":""}">
+      <label for="w_${k}">${label} <span style="opacity:.6">(${k})</span></label>
+      <input type="number" step="0.05" id="w_${k}" data-w="${k}" value="${v}" ${S.unlocked?"":"disabled"}>
+      ${nd?`<small>sem dado na fonte — conta 0</small>`:""}
+    </div>`;
+  }).join("");
+}
+function openScoring(){
+  S.unlocked = false;
+  $("#pwd").value = ""; $("#smMsg").textContent = ""; $("#smMsg").className = "msg";
+  $("#lockRow").hidden = false; $("#smSave").disabled = true;
+  renderWeights();
+  $("#scoringModal").classList.add("on"); $("#scrim").classList.add("on");
+  setTimeout(() => $("#pwd").focus(), 40);
+}
+function closeScoring(){ $("#scoringModal").classList.remove("on"); $("#scrim").classList.remove("on"); }
+$("#scoringBtn").onclick = openScoring;
+$("#smClose").onclick = closeScoring;
+$("#scrim").onclick = closeScoring;
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeScoring(); });
+
+$("#unlockBtn").onclick = () => {
+  if($("#pwd").value.trim() === PASSWORD){
+    S.unlocked = true;
+    $("#lockRow").hidden = true;
+    $("#smSave").disabled = false;
+    $("#smMsg").textContent = "Liberado para edição.";
+    $("#smMsg").className = "msg good";
+    renderWeights();
+  } else {
+    $("#smMsg").textContent = "Senha incorreta.";
+    $("#smMsg").className = "msg bad";
+  }
+};
+$("#pwd").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); $("#unlockBtn").click(); } });
+
+$("#smSave").onclick = () => {
+  if(!S.unlocked) return;
+  const next = {};
+  $$("#wgrid input[data-w]").forEach(i => {
+    const v = parseFloat(i.value);
+    if(!isNaN(v) && v !== 0) next[i.dataset.w] = v;
+  });
+  S.scoring = next; S.scoringV++;
+  updateScoringBtn(); redraw();
+  $("#smMsg").textContent = "Pesos salvos. Tudo recalculado.";
+  $("#smMsg").className = "msg good";
+};
+$("#smReset").onclick = () => {
+  S.scoring = {...DEFAULT_SCORING, ...((S.data && S.data.scoring) || {})};
+  S.scoringV++;
+  renderWeights(); updateScoringBtn(); redraw();
+  $("#smMsg").textContent = "Voltou ao padrão do arquivo.";
+  $("#smMsg").className = "msg good";
+};
+
+/* ============================================================
+   Controles globais
+   ============================================================ */
+function redraw(){
+  if(S.statsMode === "cons") renderCons(); else renderDetail();
+  renderH2H(); renderTrade();
+}
+function setWindow(w){
+  S.window = w;
+  $$("#winSwitch button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.w === w)));
+  redraw();
+}
+$("#winSwitch").addEventListener("click", e => {
+  const b = e.target.closest("button[data-w]"); if(b) setWindow(+b.dataset.w);
+});
+function setDNP(inc){
+  S.includeDNP = inc;
+  $("#dnpIn").setAttribute("aria-pressed", String(inc));
+  $("#dnpOut").setAttribute("aria-pressed", String(!inc));
+  redraw();
+}
+$("#dnpIn").onclick = () => setDNP(true);
+$("#dnpOut").onclick = () => setDNP(false);
+
+function showTab(v){
+  $$(".view").forEach(s => s.classList.toggle("on", s.id === "v-"+v));
+  $$("#tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === v)));
+}
+$("#tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-view]"); if(b) showTab(b.dataset.view);
+});
+function updateCounts(){ $("#tCount").textContent = (S.A.length + S.B.length) || ""; }
+
+function setStatsMode(m){
+  S.statsMode = m;
+  $("#modeCons").setAttribute("aria-pressed", String(m === "cons"));
+  $("#modeDet").setAttribute("aria-pressed", String(m === "det"));
+  $("#consWrap").hidden = m !== "cons";
+  $("#detWrap").hidden  = m !== "det";
+  $("#statsModeNote").textContent = m === "cons"
+    ? "Uma linha por jogador, com as médias recalculadas na janela de jogos escolhida."
+    : "Uma linha por jogo. As linhas fora da janela de jogos aparecem apagadas.";
+  if(m === "cons") renderCons(); else renderDetail();
+}
+$("#modeCons").onclick = () => setStatsMode("cons");
+$("#modeDet").onclick  = () => setStatsMode("det");
+
+function buildFilterOptions(){
+  const teams = [...new Set(S.players.map(p => p.team).filter(Boolean))].sort();
+  $("#fTeam").innerHTML = `<option value="">Todos</option>` + teams.map(t => `<option>${esc(t)}</option>`).join("");
+  const poss = [...new Set(S.players.flatMap(p => (p.pos||"").split(/[-,]/).map(x => x.trim())).filter(Boolean))].sort();
+  $("#fPos").innerHTML = poss.map(p => `<button data-v="${esc(p)}" aria-pressed="false">${esc(p)}</button>`).join("");
+}
+
+function wireFilters(){
+  const f = S.filters;
+  $("#fName").oninput    = e => { f.name = e.target.value; renderCons(); };
+  $("#fTeam").onchange   = e => { f.team = e.target.value; renderCons(); };
+  $("#fMinG").oninput    = e => { f.minG = parseInt(e.target.value)||0; renderCons(); };
+  $("#fMinMpg").oninput  = e => { f.minMpg = parseFloat(e.target.value)||0; renderCons(); };
+  $("#fMinFppg").oninput = e => { f.minFppg = parseFloat(e.target.value)||0; renderCons(); };
+  $("#fMaxAge").oninput  = e => { f.maxAge = parseFloat(e.target.value)||null; renderCons(); };
+  $("#fPos").onclick = e => {
+    const b = e.target.closest("button"); if(!b) return;
+    const v = b.dataset.v;
+    f.pos.has(v) ? f.pos.delete(v) : f.pos.add(v);
+    b.setAttribute("aria-pressed", String(f.pos.has(v)));
+    renderCons();
+  };
+  $("#fReset").onclick = () => {
+    S.filters = {name:"",team:"",pos:new Set(),minG:1,minMpg:0,minFppg:0,maxAge:null};
+    $("#fName").value = ""; $("#fTeam").value = ""; $("#fMinG").value = 1;
+    $("#fMinMpg").value = 0; $("#fMinFppg").value = 0; $("#fMaxAge").value = "";
+    $$("#fPos button").forEach(b => b.setAttribute("aria-pressed","false"));
+    renderCons();
+  };
+}
+
+["A","B"].forEach(side => {
+  $("#addPick"+side).onclick = () => addAsset(side, {
+    type:"pick", year:$("#pkYear"+side).value, round:$("#pkRound"+side).value
+  });
+  $("#addFaab"+side).onclick = () => {
+    const v = parseInt($("#faab"+side).value);
+    if(!v || v <= 0) return;
+    addAsset(side, {type:"faab", amount:v});
+    $("#faab"+side).value = "";
+  };
+});
+
+/* ============================================================
+   Motor de dados — CDN da NBA + armazenamento no navegador
+   O stats.nba.com nao pode ser chamado do navegador (CORS + anti-bot).
+   O CDN estatico nao tem essa protecao: e de onde o proprio nba.com le.
+   ============================================================ */
+const CDN = "https://cdn.nba.com/static/json";
+const SCHEDULE_URLS = [
+  `${CDN}/staticData/scheduleLeagueV2_1.json`,
+  `${CDN}/staticData/scheduleLeagueV2.json`
+];
+const COLS_PADRAO = ["date","tm","loc","opp","res","tmpts","opppts","mp",
+  "fg","fga","fg3","fg3a","ft","fta","orb","drb","trb","ast","stl","blk",
+  "tov","pf","pts","pm","reason"];
+const PARALELO = 6;      // downloads simultaneos
+const JANELA_PADRAO = 40;
+
+/* ---------- armazenamento local (IndexedDB) ---------- */
+const DB_NOME = "brejo", DB_STORE = "base";
+function idb(){
+  return new Promise((ok, err) => {
+    const r = indexedDB.open(DB_NOME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(DB_STORE);
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => err(r.error);
+  });
+}
+async function salvarBase(obj){
+  try{
+    const db = await idb();
+    await new Promise((ok, err) => {
+      const t = db.transaction(DB_STORE, "readwrite");
+      t.objectStore(DB_STORE).put(obj, "atual");
+      t.oncomplete = ok;
+      t.onerror = () => err(t.error);
+    });
+    return true;
+  }catch(e){ return false; }
+}
+async function lerBaseSalva(){
+  try{
+    const db = await idb();
+    return await new Promise((ok, err) => {
+      const t = db.transaction(DB_STORE, "readonly");
+      const q = t.objectStore(DB_STORE).get("atual");
+      q.onsuccess = () => ok(q.result || null);
+      q.onerror = () => err(q.error);
+    });
+  }catch(e){ return null; }
+}
+async function apagarBase(){
+  try{
+    const db = await idb();
+    await new Promise(ok => {
+      const t = db.transaction(DB_STORE, "readwrite");
+      t.objectStore(DB_STORE).delete("atual");
+      t.oncomplete = ok; t.onerror = ok;
+    });
+  }catch(e){}
+}
+
+/* ---------- utilidades ---------- */
+function isoMin(s){
+  if(!s) return null;
+  const m = /PT(?:(\d+)M)?(?:([\d.]+)S)?/.exec(String(s));
+  if(!m) return null;
+  const mi = parseInt(m[1] || 0, 10), se = parseFloat(m[2] || 0);
+  return Math.round(((mi||0) + (se||0)/60) * 100) / 100;
+}
+function chaveNome(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g,"")
+    .replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
+}
+function idadeDecimal(nasc){
+  if(!nasc) return null;
+  const d = new Date(String(nasc).slice(0,10));
+  if(isNaN(d)) return null;
+  return Math.round((Date.now() - d.getTime()) / 31557600000 * 10) / 10;
+}
+function hojeISO(){ return new Date().toISOString().slice(0,10); }
+
+function upmsg(txt, cls){
+  const bar = $("#upbar");
+  bar.hidden = false;
+  bar.className = "upbar" + (cls ? " " + cls : "");
+  $("#upmsg").textContent = txt;
+}
+function prog(feitos, total, txt){
+  $("#prog").hidden = false;
+  $("#progfill").style.width = total ? (feitos/total*100).toFixed(1) + "%" : "0%";
+  $("#progtxt").textContent = txt;
+}
+
+/* ---------- jogo mais recente na base ---------- */
+function lastGameInfo(){
+  let melhor = null;
+  S.players.forEach(p => p.g.forEach(r => {
+    const d = gv(r,"date");
+    if(!d) return;
+    if(!melhor || d > melhor.date){
+      melhor = {date:d, tm:gv(r,"tm"), opp:gv(r,"opp"), tp:gv(r,"tmpts"), op:gv(r,"opppts")};
+    }
+  }));
+  return melhor;
+}
+function updateLastGame(){
+  const g = lastGameInfo(), el = $("#lastGame");
+  if(!g){ el.textContent = "jogo mais recente: —"; return; }
+  const placar = (g.tp != null && g.op != null) ? ` ${g.tp}-${g.op}` : "";
+  const [, m, d] = g.date.split("-");
+  el.textContent = `jogo mais recente: ${d}/${m} ${g.tm||""}${g.opp?"x"+g.opp:""}${placar}`;
+  el.title = `Ultimo jogo na base: ${g.date}`;
+}
+
+/* ---------- calendario ---------- */
+function dataDoJogo(g, dia){
+  for(const v of [g.gameDateTimeEst, g.gameDateEst, g.gameDateTimeUTC, g.gameTimeEt]){
+    const s = String(v || "");
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  }
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(String((dia && dia.gameDate) || ""));
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : "";
+}
+async function fetchSchedule(){
+  let erro = null;
+  for(const u of SCHEDULE_URLS){
+    try{
+      const r = await fetch(u, {mode:"cors", cache:"no-store"});
+      if(!r.ok){ erro = "HTTP " + r.status; continue; }
+      const j = await r.json();
+      const dias = (j.leagueSchedule && j.leagueSchedule.gameDates) || j.gameDates;
+      if(Array.isArray(dias)) return dias;
+      erro = "formato inesperado";
+    }catch(e){ erro = e.message; }
+  }
+  throw new Error(erro || "calendario indisponivel");
+}
+
+/** Jogos encerrados e anteriores a hoje. Sem `depoisDe`, anda de tras pra
+    frente ate cada time somar `alvo` partidas. */
+function jogosDaJanela(dias, alvo, depoisDe){
+  const hoje = hojeISO(), todos = [];
+  dias.forEach(dia => (dia.games || []).forEach(g => {
+    const dt = dataDoJogo(g, dia);
+    if(!dt || dt >= hoje) return;                     // so de ontem para tras
+    if(g.gameStatus && g.gameStatus !== 3) return;    // 3 = encerrado
+    todos.push({
+      id: String(g.gameId), data: dt,
+      h: (g.homeTeam && g.homeTeam.teamTricode) || "",
+      a: (g.awayTeam && g.awayTeam.teamTricode) || ""
+    });
+  }));
+  todos.sort((x,y) => x.data.localeCompare(y.data));
+
+  if(depoisDe) return todos.filter(g => g.data > depoisDe);
+
+  const conta = {}, sel = [];
+  for(let i = todos.length - 1; i >= 0; i--){
+    const g = todos[i];
+    const ch = conta[g.h] || 0, ca = conta[g.a] || 0;
+    if(ch >= alvo && ca >= alvo) continue;
+    conta[g.h] = ch + 1; conta[g.a] = ca + 1;
+    sel.push(g);
+  }
+  return sel.sort((x,y) => x.data.localeCompare(y.data));
+}
+
+/* ---------- box score -> linhas ---------- */
+function linhasDoBoxscore(j){
+  const g = j && j.game;
+  if(!g) return [];
+  const cols = (S.data && S.data.cols) || COLS_PADRAO;
+  const data = String(g.gameTimeLocal || g.gameEt || g.gameTimeUTC || "").slice(0,10);
+  const out = [];
+  [["homeTeam","awayTeam","H"], ["awayTeam","homeTeam","A"]].forEach(([meu, dele, loc]) => {
+    const t = g[meu], o = g[dele];
+    if(!t || !o) return;
+    const tp = t.score, op = o.score;
+    (t.players || []).forEach(pl => {
+      const st = pl.statistics || {};
+      const mp = isoMin(st.minutes);
+      const rec = {
+        date:data, tm:t.teamTricode||"", loc:loc, opp:o.teamTricode||"",
+        res:(tp > op) ? "W" : (tp < op ? "L" : ""),
+        tmpts: tp ?? null, opppts: op ?? null, mp:mp,
+        fg:st.fieldGoalsMade ?? null,      fga:st.fieldGoalsAttempted ?? null,
+        fg3:st.threePointersMade ?? null,  fg3a:st.threePointersAttempted ?? null,
+        ft:st.freeThrowsMade ?? null,      fta:st.freeThrowsAttempted ?? null,
+        orb:st.reboundsOffensive ?? null,  drb:st.reboundsDefensive ?? null,
+        trb:st.reboundsTotal ?? null,      ast:st.assists ?? null,
+        stl:st.steals ?? null,             blk:st.blocks ?? null,
+        tov:st.turnovers ?? null,          pf:st.foulsPersonal ?? null,
+        pts:st.points ?? null,             pm:st.plusMinusPoints ?? null,
+        reason: (!mp) ? (pl.notPlayingReason || "Nao jogou") : null
+      };
+      out.push({
+        pid: String(pl.personId),
+        nome: pl.name || `${pl.firstName||""} ${pl.familyName||""}`.trim(),
+        time: t.teamTricode || "",
+        pos: pl.position || "",
+        linha: cols.map(c => rec[c] ?? null)
+      });
+    });
+  });
+  return out;
+}
+
+/* ---------- download em paralelo ---------- */
+async function baixarBoxscores(jogos, onProg){
+  const boxes = [];
+  let feitos = 0, falhas = 0, i = 0;
+  async function worker(){
+    while(i < jogos.length){
+      const j = jogos[i++];
+      try{
+        const r = await fetch(`${CDN}/liveData/boxscore/boxscore_${j.id}.json`, {mode:"cors"});
+        if(r.ok) boxes.push(await r.json()); else falhas++;
+      }catch(e){ falhas++; }
+      feitos++;
+      if(onProg) onProg(feitos, jogos.length, falhas);
+    }
+  }
+  await Promise.all(Array.from({length: Math.min(PARALELO, jogos.length)}, worker));
+  return {boxes, falhas};
+}
+
+/** Mescla os box scores no mapa de jogadores. Nao duplica: um time joga no
+    maximo uma vez por data. */
+function aplicarBoxes(boxes, mapa){
+  const iData = ((S.data && S.data.cols) || COLS_PADRAO).indexOf("date");
+  let add = 0, novos = 0;
+  boxes.forEach(b => linhasDoBoxscore(b).forEach(x => {
+    let p = mapa[x.pid];
+    if(!p){
+      p = {id:x.pid, name:x.nome, team:x.time, pos:x.pos||"", age:null, bio:{}, g:[], _cache:null};
+      mapa[x.pid] = p; novos++;
+    }
+    if(x.time) p.team = x.time;
+    if(x.pos && !p.pos) p.pos = x.pos;
+    if(p.g.some(r => r[iData] === x.linha[iData])) return;
+    p.g.push(x.linha); p._cache = null; add++;
+  }));
+  return {add, novos};
+}
+
+/* ---------- complemento: o que o CDN nao entrega ----------
+   Os JOGOS vem sempre do CDN. Aqui entram so idade, altura, faculdade,
+   temporadas e contrato — dados que mudam raramente. */
+const SALARIO_URL = "https://raw.githubusercontent.com/gabriel1200/site_Data/master/salary.csv";
+
+async function tentarBiosJson(mapa){
+  try{
+    const r = await fetch("bios.json", {cache:"no-store"});
+    if(!r.ok) return 0;
+    const j = await r.json();
+    const ps = j.players || {};
+    let n = 0;
+    Object.keys(ps).forEach(pid => {
+      const p = mapa[pid];
+      if(!p) return;
+      const b = ps[pid];
+      if(b.age != null) p.age = b.age;
+      if(b.pos && !p.pos) p.pos = b.pos;
+      if(b.bio) p.bio = {...(p.bio||{}), ...b.bio};
+      if(b.contract) p.contract = b.contract;
+      n++;
+    });
+    return n;
+  }catch(e){ return 0; }
+}
+
+async function tentarSleeper(mapa){
+  try{
+    const r = await fetch("https://api.sleeper.app/v1/players/nba", {mode:"cors"});
+    if(!r.ok) return 0;
+    const j = await r.json();
+    const porNome = {};
+    Object.values(j).forEach(p => {
+      if(!p || typeof p !== "object") return;
+      const nome = p.full_name || `${p.first_name||""} ${p.last_name||""}`;
+      const k = chaveNome(nome);
+      if(k) porNome[k] = p;
+    });
+    let n = 0;
+    Object.values(mapa).forEach(p => {
+      const sl = porNome[chaveNome(p.name)];
+      if(!sl) return;
+      if(sl.birth_date){ p.bio.born = sl.birth_date; p.age = idadeDecimal(sl.birth_date); }
+      if(sl.years_exp != null) p.bio.exp = Number(sl.years_exp);
+      if(sl.height) p.bio.height = sl.height;
+      if(sl.weight) p.bio.weight = Number(sl.weight);
+      if(sl.college) p.bio.college = sl.college;
+      if(!p.pos && sl.position) p.pos = sl.position;
+      n++;
+    });
+    return n;
+  }catch(e){ return 0; }
+}
+
+/** Dataset publico com salario por temporada. As colunas sao "2025-26",
+    "2026-27"...; os anos de contrato saem da contagem de temporadas pagas. */
+async function tentarSalarios(mapa){
+  try{
+    const r = await fetch(SALARIO_URL, {mode:"cors"});
+    if(!r.ok) return 0;
+    const linhas = (await r.text()).split(/\r?\n/).filter(x => x.trim());
+    if(linhas.length < 2) return 0;
+    const cab = linhas[0].split(",");
+    const iNome = cab.indexOf("Player");
+    const cols = cab.map((c,i) => ({c,i}))
+                    .filter(x => /^\d{4}-\d{2}$/.test(x.c))
+                    .sort((a,b) => a.c.localeCompare(b.c));
+    if(iNome < 0 || !cols.length) return 0;
+
+    const porNome = {};
+    Object.values(mapa).forEach(p => porNome[chaveNome(p.name)] = p);
+
+    let n = 0;
+    for(let k = 1; k < linhas.length; k++){
+      const f = linhas[k].split(",");
+      const p = porNome[chaveNome(f[iNome])];
+      if(!p) continue;
+      const sal = parseFloat(f[cols[0].i]);
+      const anos = cols.filter(x => parseFloat(f[x.i]) > 0).length;
+      if(!isNaN(sal) || anos){
+        p.contract = {salary: isNaN(sal) ? null : sal, years: anos};
+        n++;
+      }
+    }
+    return n;
+  }catch(e){ return 0; }
+}
+
+/** bios.json tem prioridade; o resto e tentado ao vivo para o que faltar. */
+async function enriquecer(mapa){
+  const fontes = [];
+  let bios = await tentarBiosJson(mapa);
+  if(bios) fontes.push("bios.json");
+
+  if(!bios){
+    bios = await tentarSleeper(mapa);
+    if(bios) fontes.push("Sleeper");
+  }
+  let sal = Object.values(mapa).filter(p => p.contract).length;
+  if(!sal){
+    sal = await tentarSalarios(mapa);
+    if(sal) fontes.push("salarios");
+  }
+  return {bios, sal, fontes};
+}
+
+/* ---------- construir do zero ---------- */
+async function construirBase(){
+  const alvo = parseInt($("#profund").value, 10) || JANELA_PADRAO;
+  $("#buildBtn").disabled = true;
+  $("#err").textContent = "";
+  try{
+    prog(0, 1, "Buscando o calendario...");
+    const dias = await fetchSchedule();
+
+    const jogos = jogosDaJanela(dias, alvo);
+    if(!jogos.length) throw new Error("O calendario nao trouxe jogos encerrados.");
+
+    prog(0, jogos.length, `0 de ${jogos.length} jogos`);
+    const {boxes, falhas} = await baixarBoxscores(jogos, (f, t, fa) =>
+      prog(f, t, `${f} de ${t} jogos${fa ? ` (${fa} falharam)` : ""}`));
+
+    if(!boxes.length) throw new Error("Nenhum box score respondeu. Veja se o navegador bloqueou por CORS.");
+
+    S.data = {cols:COLS_PADRAO, meta:{}, scoring:{...DEFAULT_SCORING}};
+    const mapa = {};
+    const {novos} = aplicarBoxes(boxes, mapa);
+
+    prog(1, 1, "Buscando bios e contratos...");
+    const extra = await enriquecer(mapa);
+    const comBio = extra.bios;
+
+    // ordena e aplica a janela por jogador
+    Object.values(mapa).forEach(p => {
+      p.g.sort((a,b) => String(a[0]).localeCompare(String(b[0])));
+      if(p.g.length > alvo) p.g = p.g.slice(-alvo);
+    });
+
+    const lista = Object.values(mapa).sort((a,b) => a.name.localeCompare(b.name,"pt"));
+    const base = {
+      cols: COLS_PADRAO,
+      scoring: {...DEFAULT_SCORING},
+      meta: {
+        fonte: "cdn.nba.com",
+        jogos_por_jogador: alvo,
+        jogos_baixados: boxes.length,
+        gerado_em: new Date().toISOString(),
+        com_bio: comBio,
+        com_contrato: extra.sal,
+        fontes_extra: extra.fontes
+      },
+      players: lista
+    };
+
+    const salvou = await salvarBase(base);
+    aplicarBase(base);
+    $("#prog").hidden = true;
+    upmsg(`Base montada: ${lista.length} jogadores, ${boxes.length} jogos` +
+          (comBio ? `, ${comBio} com bio` : ", sem bios") +
+          (extra.sal ? `, ${extra.sal} com contrato` : "") +
+          (falhas ? `, ${falhas} jogos falharam` : "") +
+          (salvou ? ". Salva no navegador." : ". Nao consegui salvar no navegador."), "ok");
+  }catch(e){
+    $("#prog").hidden = true;
+    const cors = /Failed to fetch|NetworkError|Load failed/i.test(e.message);
+    $("#err").innerHTML = cors
+      ? "O navegador nao conseguiu ler o cdn.nba.com — e bloqueio de CORS, nao erro seu. " +
+        "O caminho certo e publicar o <code>games.json</code> pelo GitHub Actions: " +
+        "o servidor busca o CDN sem essa restricao e o app so le o arquivo. " +
+        "Veja o build_data.py e o update.yml."
+      : esc(e.message);
+  }finally{
+    $("#buildBtn").disabled = false;
+  }
+}
+
+/* ---------- atualizar com os jogos novos ---------- */
+async function atualizar(){
+  if(!S.data) return;
+  const btn = $("#updateBtn");
+  btn.disabled = true;
+  try{
+    // 1. o arquivo publicado costuma estar mais fresco que o CDN via navegador
+    upmsg("Procurando base publicada...");
+    const pub = await carregarGamesJson();
+    const meuAte = (lastGameInfo() || {}).date || "";
+    if(pub && (pub.meta || {}).ate && pub.meta.ate > meuAte){
+      aplicarBase(pub);
+      const m = {}; S.players.forEach(p => { p.bio = p.bio || {}; m[p.id] = p; });
+      await enriquecer(m);
+      S.scoringV++; buildFilterOptions(); updateLastGame(); redraw();
+      await salvarBase({cols:S.data.cols, scoring:S.scoring, meta:S.data.meta,
+        players:S.players.map(p => ({id:p.id,name:p.name,team:p.team,pos:p.pos,
+          age:p.age,bio:p.bio,contract:p.contract,g:p.g}))});
+      upmsg(`Base publicada carregada | jogos ate ${pub.meta.ate}`, "ok");
+      return;
+    }
+
+    const base = lastGameInfo();
+    const desde = base ? base.date : "";
+    upmsg("Buscando o calendario...");
+    const dias = await fetchSchedule();
+    const jogos = jogosDaJanela(dias, 0, desde);
+
+    if(!jogos.length){
+      upmsg(`Nada novo. A base ja vai ate ${desde || "—"}.`, "ok");
+      return;
+    }
+
+    const {boxes, falhas} = await baixarBoxscores(jogos, (f, t) =>
+      upmsg(`Baixando ${f} de ${t} jogos novos...`));
+
+    const mapa = {};
+    S.players.forEach(p => mapa[p.id] = p);
+    const {add, novos} = aplicarBoxes(boxes, mapa);
+
+    const limite = (S.data.meta && S.data.meta.jogos_por_jogador) || 0;
+    let cortados = 0;
+    Object.values(mapa).forEach(p => {
+      p.g.sort((a,b) => String(a[0]).localeCompare(String(b[0])));
+      if(limite && p.g.length > limite){
+        cortados += p.g.length - limite;
+        p.g = p.g.slice(-limite);
+      }
+      p._cache = null;
+    });
+
+    if(novos) await enriquecer(mapa);
+    S.players = Object.values(mapa).sort((a,b) => a.name.localeCompare(b.name,"pt"));
+    S.byId = {};
+    S.players.forEach(p => S.byId[p.id] = p);
+
+    S.scoringV++;
+    buildFilterOptions();
+    updateLastGame();
+    redraw();
+
+    await salvarBase({
+      cols: S.data.cols, scoring: S.scoring,
+      meta: {...S.data.meta, gerado_em: new Date().toISOString()},
+      players: S.players.map(p => ({id:p.id, name:p.name, team:p.team, pos:p.pos,
+                                    age:p.age, bio:p.bio, contract:p.contract, g:p.g}))
+    });
+
+    upmsg(`${boxes.length} jogos novos, ${add} linhas` +
+          (novos ? `, ${novos} jogadores novos` : "") +
+          (cortados ? `, ${cortados} jogos antigos descartados` : "") +
+          (falhas ? `, ${falhas} falharam` : "") + ". Salvo.", falhas ? null : "ok");
+  }catch(e){
+    upmsg(`Nao consegui atualizar: ${e.message}`, "bad");
+  }finally{
+    btn.disabled = false;
+  }
+}
+$("#updateBtn").onclick = atualizar;
+$("#buildBtn").onclick = construirBase;
+
+/* ============================================================
+   Boot
+   ============================================================ */
+
+$("#reloadBtn").onclick = async () => {
+  await apagarBase();
+  $("#setup").hidden = false; $("#tabs").hidden = true;
+  $("#prog").hidden = true; $("#err").textContent = "";
+  $$(".view").forEach(v => v.classList.remove("on"));
+  ["#ctlWindow","#ctlDnp","#ctlScoring","#ctlUpdate","#reloadBtn"].forEach(s => $(s).hidden = true);
+  $("#upbar").hidden = true;
+};
+
+
+
+/* Ordem de arranque:
+   1. base salva no navegador  -> abre na hora
+   2. nba_data.json ao lado    -> util quando hospedado (GitHub Pages)
+   3. tela de construir        -> monta do zero pelo CDN */
+async function carregarGamesJson(){
+  try{
+    const r = await fetch("games.json", {cache:"no-store"});
+    if(!r.ok) return null;
+    const j = await r.json();
+    return (j && j.players && j.players.length) ? j : null;
+  }catch(e){ return null; }
+}
+
+/* Ordem de arranque:
+   1. games.json publicado ao lado (GitHub Actions atualiza sozinho)
+   2. base salva no navegador
+   3. tela de construir pelo CDN (so funciona se o CORS deixar) */
+(async function arrancar(){
+  const publicado = await carregarGamesJson();
+  const salva = await lerBaseSalva();
+
+  let base = null, origem = "";
+  if(publicado && salva){
+    const dP = (publicado.meta && publicado.meta.ate) || "";
+    const dS = (salva.meta && salva.meta.ate) || "";
+    base = dP >= dS ? publicado : salva;
+    origem = dP >= dS ? "arquivo publicado" : "base do navegador";
+  } else if(publicado){ base = publicado; origem = "arquivo publicado"; }
+  else if(salva){ base = salva; origem = "base do navegador"; }
+
+  if(!base) return;
+
+  aplicarBase(base);
+  const mapa = {};
+  S.players.forEach(p => { p.bio = p.bio || {}; mapa[p.id] = p; });
+  const extra = await enriquecer(mapa);
+  if(extra.fontes.length){ S.scoringV++; redraw(); }
+
+  salvarBase({cols:S.data.cols, scoring:S.scoring, meta:S.data.meta,
+    players:S.players.map(p => ({id:p.id,name:p.name,team:p.team,pos:p.pos,
+      age:p.age,bio:p.bio,contract:p.contract,g:p.g}))});
+
+  const ate = (base.meta && base.meta.ate) || "";
+  upmsg(`${origem}${ate ? ` | jogos ate ${ate}` : ""}` +
+        (extra.fontes.length ? ` | complemento: ${extra.fontes.join(", ")}` : ""));
+})();
+
+wireFilters();
+wireSearch("#detPick", "#detSugg", id => { S.detId = id; renderDetail(); });
+wireSearch("#h2hA", "#suggH2hA", id => { S.h2h.a = id; $("#h2hA").value = S.byId[id].name; renderH2H(); });
+wireSearch("#h2hB", "#suggH2hB", id => { S.h2h.b = id; $("#h2hB").value = S.byId[id].name; renderH2H(); });
+wireSearch("#pickA", "#suggA", id => { addAsset("A", {type:"player", id}); $("#pickA").value = ""; });
+wireSearch("#pickB", "#suggB", id => { addAsset("B", {type:"player", id}); $("#pickB").value = ""; });
+</script>
+</body>
+</html>
