@@ -1205,7 +1205,6 @@ const GAMES_CSV = ano =>
 const COLS_PADRAO = ["date","tm","loc","opp","res","tmpts","opppts","mp",
   "fg","fga","fg3","fg3a","ft","fta","orb","drb","trb","ast","stl","blk",
   "tov","pf","pts","pm","reason"];
-const PARALELO = 6;      // downloads simultaneos
 const JANELA_PADRAO = 40;
 
 /* ---------- armazenamento local (IndexedDB) ---------- */
@@ -1301,6 +1300,110 @@ function updateLastGame(){
 }
 
 /* ---------- calendario ---------- */
+/* ---------- complemento: o que a fonte de jogos nao traz ----------
+   Idade com decimal, altura, peso, temporadas e contrato. Muda raramente. */
+const SALARIO_URL = RAW + "/gabriel1200/site_Data/master/salary.csv";
+
+async function tentarBiosJson(mapa){
+  try{
+    const r = await fetch("bios.json", {cache:"no-store"});
+    if(!r.ok) return 0;
+    const j = await r.json();
+    const ps = j.players || {};
+    let n = 0;
+    Object.keys(ps).forEach(pid => {
+      const p = mapa[pid];
+      if(!p) return;
+      const b = ps[pid];
+      if(b.age != null) p.age = b.age;
+      if(b.pos && !p.pos) p.pos = b.pos;
+      if(b.bio) p.bio = {...(p.bio||{}), ...b.bio};
+      if(b.contract) p.contract = b.contract;
+      n++;
+    });
+    return n;
+  }catch(e){ return 0; }
+}
+
+async function tentarSleeper(mapa){
+  try{
+    const r = await fetch("https://api.sleeper.app/v1/players/nba", {mode:"cors"});
+    if(!r.ok) return 0;
+    const j = await r.json();
+    const porNome = {};
+    Object.values(j).forEach(p => {
+      if(!p || typeof p !== "object") return;
+      const nome = p.full_name || `${p.first_name||""} ${p.last_name||""}`;
+      const k = chaveNome(nome);
+      if(k) porNome[k] = p;
+    });
+    let n = 0;
+    Object.values(mapa).forEach(p => {
+      const sl = porNome[chaveNome(p.name)];
+      if(!sl) return;
+      p.bio = p.bio || {};
+      if(sl.birth_date){ p.bio.born = sl.birth_date; p.age = idadeDecimal(sl.birth_date) || p.age; }
+      if(sl.years_exp != null) p.bio.exp = Number(sl.years_exp);
+      if(sl.height) p.bio.height = sl.height;
+      if(sl.weight) p.bio.weight = Number(sl.weight);
+      if(!p.pos && sl.position) p.pos = sl.position;
+      n++;
+    });
+    return n;
+  }catch(e){ return 0; }
+}
+
+/** Salario por temporada; os anos de contrato saem da contagem de temporadas pagas. */
+async function tentarSalarios(mapa){
+  try{
+    const r = await fetch(SALARIO_URL, {mode:"cors"});
+    if(!r.ok) return 0;
+    const linhas = (await r.text()).split(/\r?\n/).filter(x => x.trim());
+    if(linhas.length < 2) return 0;
+    const cab = linhas[0].split(",");
+    const iNome = cab.indexOf("Player");
+    const cols = cab.map((c,i) => ({c,i}))
+                    .filter(x => /^\d{4}-\d{2}$/.test(x.c))
+                    .sort((a,b) => a.c.localeCompare(b.c));
+    if(iNome < 0 || !cols.length) return 0;
+
+    const porNome = {};
+    Object.values(mapa).forEach(p => porNome[chaveNome(p.name)] = p);
+
+    let n = 0;
+    for(let k = 1; k < linhas.length; k++){
+      const f = linhas[k].split(",");
+      const p = porNome[chaveNome(f[iNome])];
+      if(!p) continue;
+      const sal = parseFloat(f[cols[0].i]);
+      const anos = cols.filter(x => parseFloat(f[x.i]) > 0).length;
+      if(!isNaN(sal) || anos){
+        p.contract = {salary: isNaN(sal) ? null : sal, years: anos};
+        n++;
+      }
+    }
+    return n;
+  }catch(e){ return 0; }
+}
+
+/** bios.json tem prioridade; o resto e tentado ao vivo para o que faltar. */
+async function enriquecer(mapa){
+  const fontes = [];
+  let bios = await tentarBiosJson(mapa);
+  if(bios) fontes.push("bios.json");
+
+  if(!bios){
+    bios = await tentarSleeper(mapa);
+    if(bios) fontes.push("Sleeper");
+  }
+  let sal = Object.values(mapa).filter(p => p.contract).length;
+  if(!sal){
+    sal = await tentarSalarios(mapa);
+    if(sal) fontes.push("contratos");
+  }
+  return {bios, sal, fontes};
+}
+
 /* ---------- construir/atualizar a partir do CSV publico ---------- */
 const CSV_MAP = {MIN:"mp",FGM:"fg",FGA:"fga",FG3M:"fg3",FG3A:"fg3a",FTM:"ft",FTA:"fta",
   OREB:"orb",DREB:"drb",REB:"trb",AST:"ast",STL:"stl",BLK:"blk",TOV:"tov",PF:"pf",
